@@ -4,9 +4,9 @@
 
 # DeepLens
 
-DeepLens is a differentiable optical lens simulator for computational imaging, supporting multiple optical models (e.g., ray tracing, wave propagation, ray-wave model, surrogate PSF network). DeepLens can be used for (1) end-to-end optics-algorithm co-design, (2) automated optical design, and (3) image simulation for synthetic datasets.
+DeepLens is a differentiable optical lens simulator for computational imaging and optical design. It supports multiple optical models (e.g., ray tracing, wave propagation, ray-wave model, surrogate PSF network). DeepLens can be used for (1) end-to-end optics-algorithm co-design, (2) automated optical design, and (3) image simulation for synthetic datasets.
 
-DeepLens helps researchers and engineers rapidly prototype and design custom optical systems. DeepLens is also **AI-native**: ask your agent to call DeepLens directly, so that its optical reasoning is grounded in real simulation, for example, `use DeepLens to compute the MTF of this lens`.
+DeepLens helps researchers and engineers rapidly prototype and design custom optical systems. DeepLens is also **AI-native**: ask your agent to call DeepLens directly, so that its optical reasoning is grounded in real simulation, for example, `Use DeepLens as optical simulator, compute the MTF of this lens`.
 
 <p align="center">
     <a href="https://ai4optics.github.io/docs/deeplens/"><img src="https://img.shields.io/badge/Docs-blue?style=flat&logo=readthedocs&logoColor=white" alt="Docs"/></a>

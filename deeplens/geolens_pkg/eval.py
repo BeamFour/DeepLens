@@ -378,7 +378,7 @@ class GeoLensEval:
                 ``[..., num_rays, 3]`` for positions and ``[..., num_rays]``
                 for validity mask. Use ``ray.o[..., :2]`` for transverse
                 positions and ``ray.is_valid`` for the validity mask.
-                ``ray.centroid()`` gives the weighted centroid.
+                ``ray.centroid()`` gives the centroid over valid rays.
         """
         wvln = self.primary_wvln if wvln is None else wvln
         ray = self.sample_from_points(points=points, num_rays=num_rays, wvln=wvln)

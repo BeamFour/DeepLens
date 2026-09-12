@@ -127,6 +127,12 @@ Run the demo code:
 python 0_hello_geolens.py
 ```
 
+Additional examples are in [`scripts/`](scripts/). Run them from the repository root as modules:
+
+```bash
+python -m scripts.1_design_geolens
+```
+
 ## In-House Extensions
 
 The modules below are implemented and working in house, but are not part of the public release yet. If your project needs one, get in touch and we are happy to grant access or collaborate.

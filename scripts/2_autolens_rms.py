@@ -60,7 +60,7 @@ def config():
         yaml.dump(args, f)
 
     with open(f"{result_dir}/2_autolens_rms.py", "w") as f:
-        with open("2_autolens_rms.py", "r") as code:
+        with open(__file__, "r") as code:
             f.write(code.read())
 
     return args

@@ -23,9 +23,9 @@ aperture (f/2.5) aliases the phase into ghost lattices, so the input point is
 stopped down to ``APERTURE_MM`` via ``point_wave(valid_r=...)`` -- keeping every
 surface well-sampled while still resolving the Airy spot and the DOE's blur.
 
-Run:
-    python 4f_system.py            # default device (CUDA on the GPU machine)
-    python 4f_system.py cpu        # force CPU (local smoke test)
+Run from the repository root:
+    python -m scripts.4f_system      # default device (CUDA on the GPU machine)
+    python -m scripts.4f_system cpu  # force CPU (local smoke test)
 """
 
 import os

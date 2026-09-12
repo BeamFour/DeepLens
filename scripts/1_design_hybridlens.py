@@ -77,7 +77,7 @@ def config():
         yaml.dump(args, f)
 
     with open(f"{result_dir}/1_design_hybridlens.py", "w") as f:
-        with open("1_design_hybridlens.py", "r") as code:
+        with open(__file__, "r") as code:
             f.write(code.read())
 
     return args

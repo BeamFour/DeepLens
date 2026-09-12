@@ -180,7 +180,7 @@ def test_prop_to_supports_per_ray_depth_and_refractive_index():
     torch.testing.assert_close(ray.opl, o.new_tensor([[10.0], [30.0]]))
 
 
-def test_trace_reanchors_far_float32_bundle_before_intersecting():
+def test_trace_reanchors_far_float32_bundle_before_intersecting(device_auto):
     """`trace` re-anchors far float32 rays so the shallow sag survives.
 
     A float32 origin at z=-1e6 cancels against the intersection distance and
@@ -188,12 +188,14 @@ def test_trace_reanchors_far_float32_bundle_before_intersecting():
     first. `Spheric.intersect` no longer re-anchors on its own, so this is the
     only place the guarantee lives.
     """
-    lens = GeoLens()
-    lens.surfaces = [Spheric(c=1e-4, r=40.0, d_next=0.0, mat2="air", device="cpu")]
-    lens.d_sensor = torch.tensor(0.0)
+    lens = GeoLens(device=device_auto)
+    lens.surfaces = [
+        Spheric(c=1e-4, r=40.0, d_next=0.0, mat2="air", device=device_auto)
+    ]
+    lens.d_sensor = torch.tensor(0.0, device=device_auto)
 
-    o = torch.tensor([[3.0, 4.0, -1e6]], dtype=torch.float32)
-    ray = Ray(o, o.new_tensor([[0.0, 0.0, 1.0]]), 0.55)
+    o = torch.tensor([[3.0, 4.0, -1e6]], dtype=torch.float32, device=device_auto)
+    ray = Ray(o, o.new_tensor([[0.0, 0.0, 1.0]]), 0.55, device=device_auto)
     traced, _ = lens.trace(ray)
 
     assert traced.is_valid.all()
@@ -221,7 +223,7 @@ def _far_oblique_bundle(z_obj, fov_deg, num_rays=9, pupil_r=8.0, pupil_z=20.0):
 
 
 @pytest.mark.parametrize("fov_deg", [10.0, 20.0])
-def test_trace_reanchors_far_oblique_float32_bundle(fov_deg):
+def test_trace_reanchors_far_oblique_float32_bundle(fov_deg, device_auto):
     """The forward re-anchor must hold for *oblique* far bundles, not just axial.
 
     `test_trace_reanchors_far_float32_bundle_before_intersecting` traces
@@ -232,12 +234,14 @@ def test_trace_reanchors_far_oblique_float32_bundle(fov_deg):
     bundle lands ~70 µm (≈5 sensor pixels on a typical lens) off; with it, the
     float32 trace tracks the float64 reference to well under a micron.
     """
-    lens = GeoLens("./datasets/lenses/camera/ef50mm_f1.8.json")
+    lens = GeoLens("./datasets/lenses/camera/ef50mm_f1.8.json", device=device_auto)
     lens.astype(torch.float64)
 
     o64, d64 = _far_oblique_bundle(-20000.0, fov_deg)
-    ref = lens.trace2sensor(Ray(o64.clone(), d64.clone(), 0.587))
-    got = lens.trace2sensor(Ray(o64.to(torch.float32), d64.to(torch.float32), 0.587))
+    ref = lens.trace2sensor(Ray(o64.clone(), d64.clone(), 0.587, device=device_auto))
+    got = lens.trace2sensor(
+        Ray(o64.to(torch.float32), d64.to(torch.float32), 0.587, device=device_auto)
+    )
 
     both = (ref.is_valid > 0) & (got.is_valid > 0)
     assert both.sum() > 0, "reference bundle fully vignetted; fixture is wrong"
@@ -245,7 +249,7 @@ def test_trace_reanchors_far_oblique_float32_bundle(fov_deg):
     assert err < 1e-3, f"float32 oblique trace drifted {float(err) * 1e3:.3f} um"
 
 
-def test_backward_trace_reanchors_far_float32_bundle():
+def test_backward_trace_reanchors_far_float32_bundle(device_auto):
     """`backward_tracing` needs the same guard as `forward_tracing`.
 
     The re-anchor originally lived in `Spheric.intersect` and fired on
@@ -255,14 +259,16 @@ def test_backward_trace_reanchors_far_float32_bundle():
     sit at local z=0, so the library's own reverse-rendering path never
     exercised this.
     """
-    lens = GeoLens("./datasets/lenses/camera/ef50mm_f1.8.json")
+    lens = GeoLens("./datasets/lenses/camera/ef50mm_f1.8.json", device=device_auto)
     lens.astype(torch.float64)
 
     o64, d64 = _far_oblique_bundle(1e6, 5.0, pupil_r=6.0, pupil_z=30.0)
     assert bool((d64[..., 2] < 0).all()), "fixture must produce backward rays"
 
-    ref, _ = lens.trace(Ray(o64.clone(), d64.clone(), 0.587))
-    got, _ = lens.trace(Ray(o64.to(torch.float32), d64.to(torch.float32), 0.587))
+    ref, _ = lens.trace(Ray(o64.clone(), d64.clone(), 0.587, device=device_auto))
+    got, _ = lens.trace(
+        Ray(o64.to(torch.float32), d64.to(torch.float32), 0.587, device=device_auto)
+    )
 
     both = (ref.is_valid > 0) & (got.is_valid > 0)
     assert both.sum() >= 6, (

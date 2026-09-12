@@ -113,6 +113,36 @@ def test_render_default_method_is_uniform():
     )
 
 
+def test_geolens_default_render_method_is_ray_tracing():
+    """`GeoLens` must resolve to ray tracing, not the base `Lens` default.
+
+    The override lives on the `GeoLensRender` mixin, which precedes `Lens` in
+    the MRO. Losing it silently switches every `lens.render(img)` call to
+    `"psf_patch"`.
+    """
+    assert GeoLens._default_render_method == "ray_tracing"
+
+
+@pytest.mark.parametrize("cls", LENS_CLASSES, ids=lambda c: c.__name__)
+def test_render_reads_the_default_method_attribute(cls, monkeypatch):
+    """`method=None` must resolve through `_default_render_method`.
+
+    The signature default is `None` for every lens type, so the per-type
+    default lives in that class attribute. A `render()` that hardcodes its own
+    default instead makes overriding the attribute a silent no-op, which is
+    exactly what happened to `GeoLens` when `render` moved into
+    `GeoLensRender`. Dispatching an unknown method names it in the error, so
+    the sentinel proves which value `render()` actually read.
+    """
+    monkeypatch.setattr(cls, "_default_render_method", "__sentinel__")
+    lens = cls.__new__(cls)  # no lens data needed; dispatch raises first
+    lens.obj_depth = -1000.0
+    lens.sensor_res = (4, 4)
+
+    with pytest.raises(Exception, match="__sentinel__"):
+        cls.render(lens, torch.zeros(1, 3, 4, 4), method=None)
+
+
 # =============================================================================
 # Behavioral conformance (cheap lens types actually compute a PSF)
 # =============================================================================

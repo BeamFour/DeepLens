@@ -1,5 +1,8 @@
 cff-version: 1.2.0
 title: DeepLens
+abstract: >-
+  DeepLens is a differentiable optical lens simulator for computational imaging
+  and optical design.
 message: "If you use DeepLens in your research, please cite the following paper."
 type: software
 license: Apache-2.0
@@ -18,7 +21,10 @@ keywords:
   - differentiable optics
   - lens design
   - computational photography
+  - computational imaging
   - ray tracing
+  - diffractive optics
+  - point spread function
   - pytorch
   - optical simulation
 preferred-citation:

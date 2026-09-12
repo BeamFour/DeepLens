@@ -1,5 +1,7 @@
 """Regression tests for ray shapes, masked coordinates, and propagation state."""
 
+import math
+
 import pytest
 import torch
 
@@ -196,3 +198,76 @@ def test_trace_reanchors_far_float32_bundle_before_intersecting():
 
     assert traced.is_valid.all()
     assert traced.o[0, 2].item() == pytest.approx(0.00125, abs=5e-7)
+
+
+def _far_oblique_bundle(z_obj, fov_deg, num_rays=9, pupil_r=8.0, pupil_z=20.0):
+    """A fan from one far off-axis object point, aimed across the pupil.
+
+    Built in float64 so the caller can cast a copy to float32 and attribute any
+    difference to the trace rather than to how the bundle was sampled.
+    """
+    oy = math.tan(math.radians(fov_deg)) * abs(z_obj)
+    o = torch.tensor([[0.0, oy, z_obj]], dtype=torch.float64).repeat(num_rays, 1)
+    ty = torch.linspace(-pupil_r, pupil_r, num_rays, dtype=torch.float64)
+    target = torch.stack(
+        [
+            torch.zeros(num_rays, dtype=torch.float64),
+            ty,
+            torch.full((num_rays,), pupil_z),
+        ],
+        dim=-1,
+    )
+    return o, target - o
+
+
+@pytest.mark.parametrize("fov_deg", [10.0, 20.0])
+def test_trace_reanchors_far_oblique_float32_bundle(fov_deg):
+    """The forward re-anchor must hold for *oblique* far bundles, not just axial.
+
+    `test_trace_reanchors_far_float32_bundle_before_intersecting` traces
+    `d = [0, 0, 1]`, where the transverse coordinate is identically zero and the
+    lateral cancellation cannot show. An off-axis object point at the library
+    default `DEPTH = -20000` has `o_y ≈ 3.5e3`, which cancels against the
+    intersection distance exactly the way `o_z` does. Without the re-anchor this
+    bundle lands ~70 µm (≈5 sensor pixels on a typical lens) off; with it, the
+    float32 trace tracks the float64 reference to well under a micron.
+    """
+    lens = GeoLens("./datasets/lenses/camera/ef50mm_f1.8.json")
+    lens.astype(torch.float64)
+
+    o64, d64 = _far_oblique_bundle(-20000.0, fov_deg)
+    ref = lens.trace2sensor(Ray(o64.clone(), d64.clone(), 0.587))
+    got = lens.trace2sensor(Ray(o64.to(torch.float32), d64.to(torch.float32), 0.587))
+
+    both = (ref.is_valid > 0) & (got.is_valid > 0)
+    assert both.sum() > 0, "reference bundle fully vignetted; fixture is wrong"
+    err = (got.o[both][:, :2].double() - ref.o[both][:, :2]).abs().max()
+    assert err < 1e-3, f"float32 oblique trace drifted {float(err) * 1e3:.3f} um"
+
+
+def test_backward_trace_reanchors_far_float32_bundle():
+    """`backward_tracing` needs the same guard as `forward_tracing`.
+
+    The re-anchor originally lived in `Spheric.intersect` and fired on
+    `|z| > 100` in both signs; moving it into `forward_tracing` left the
+    backward path unguarded. A caller-supplied bundle entering from far +z was
+    then wrong by millimetres and lost rays outright. `sample_sensor` origins
+    sit at local z=0, so the library's own reverse-rendering path never
+    exercised this.
+    """
+    lens = GeoLens("./datasets/lenses/camera/ef50mm_f1.8.json")
+    lens.astype(torch.float64)
+
+    o64, d64 = _far_oblique_bundle(1e6, 5.0, pupil_r=6.0, pupil_z=30.0)
+    assert bool((d64[..., 2] < 0).all()), "fixture must produce backward rays"
+
+    ref, _ = lens.trace(Ray(o64.clone(), d64.clone(), 0.587))
+    got, _ = lens.trace(Ray(o64.to(torch.float32), d64.to(torch.float32), 0.587))
+
+    both = (ref.is_valid > 0) & (got.is_valid > 0)
+    assert both.sum() >= 6, (
+        f"only {int(both.sum())} rays survived the backward trace; without the "
+        "re-anchor the float32 bundle loses most of them"
+    )
+    err = (got.o[both][:, :3].double() - ref.o[both][:, :3]).abs().max()
+    assert err < 1e-2, f"float32 backward trace drifted {float(err) * 1e3:.3f} um"

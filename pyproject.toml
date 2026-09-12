@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "deeplens-core"
 version = "2.5.2"
-description = "DeepLens: differentiable optical lens simulator for end-to-end cameras."
+description = "DeepLens is a differentiable optical lens simulator for computational imaging and optical design."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 authors = [
@@ -17,6 +17,7 @@ keywords = [
     "lens design",
     "differentiable rendering",
     "computational photography",
+    "computational imaging",
     "ray tracing",
     "pytorch",
     "optical simulation",
@@ -70,7 +71,7 @@ docs = [
 [project.urls]
 Homepage = "https://github.com/vccimaging/DeepLens"
 Repository = "https://github.com/vccimaging/DeepLens"
-Documentation = "https://vccimaging.github.io/DeepLens/"
+Documentation = "https://ai4optics.com/deeplens/"
 Issues = "https://github.com/vccimaging/DeepLens/issues"
 Changelog = "https://github.com/vccimaging/DeepLens/releases"
 

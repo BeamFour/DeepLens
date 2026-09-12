@@ -69,6 +69,10 @@ class GeoLensRender:
     shift-invariant.
     """
 
+    # Overrides `Lens._default_render_method` ("psf_patch"): a GeoLens has
+    # surfaces to trace, so `render()` defaults to reverse ray tracing.
+    _default_render_method = "ray_tracing"
+
     def render(self, img_obj, depth=None, method=None, **kwargs):
         """Differentiable image simulation.
 
@@ -82,7 +86,8 @@ class GeoLensRender:
             depth (float, optional): Object depth [mm]. When None (default),
                 falls back to `self.obj_depth`.
             method (str, optional): Image simulation method. One of 'psf_map', 'psf_patch',
-                or 'ray_tracing'. Defaults to 'ray_tracing'.
+                or 'ray_tracing'. When None (default), falls back to
+                `self._default_render_method` ('ray_tracing' for `GeoLens`).
             **kwargs: Additional arguments for different methods:
                 - psf_grid (tuple): Grid size for PSF map method. Defaults to (10, 10).
                 - psf_ks (int): Kernel size for PSF methods. Defaults to PSF_KS.
@@ -94,7 +99,7 @@ class GeoLensRender:
         Returns:
             img_render (torch.Tensor): Rendered image tensor. Shape of [N, C, H, W].
         """
-        method = "ray_tracing" if method is None else method
+        method = self._default_render_method if method is None else method
         depth = self.obj_depth if depth is None else depth
         B, C, Himg, Wimg = img_obj.shape
         Wsensor, Hsensor = self.sensor_res

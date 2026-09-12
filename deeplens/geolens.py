@@ -781,6 +781,16 @@ class GeoLens(
         # This preserves the pre-refactor material convention for cover glass
         # and other non-air image-space media.
         mat1 = self.surfaces[last].mat2
+
+        # Mirror of the re-anchor in `forward_tracing`: a far float32 origin
+        # loses the low-order sag when it cancels against the intersection
+        # distance. Local z=0 here is the plane *after* surface `last`, so +10
+        # is on the incoming side of every surface in the range. `sample_sensor`
+        # enters at local z=0, so the library's own reverse-rendering path never
+        # trips this; only a caller-supplied bundle from far +z does.
+        if bool((ray.o[..., 2] > 10.0).any()):
+            ray.prop_to(10.0, n=mat1.ior(ray.wvln))
+
         for i in range(last, first - 1, -1):
             surf = self.surfaces[i]
             dz = surf._get_effective_d_next()
